@@ -3,6 +3,7 @@
 set -o pipefail
 set -o nounset
 set -o errexit
+
 IFS=$'\n\t'
 
 TEMPLATE_DIR=${TEMPLATE_DIR:-/tmp/worker}
@@ -48,38 +49,36 @@ fi
 ################################################################################
 
 # Update the OS to begin with to catch up to the latest packages.
-sudo yum update -y
+sudo add-apt-repository universe
+sudo apt-get update -y
 
-# Install necessary packages
-sudo yum install -y \
-    aws-cfn-bootstrap \
-    awscli \
-    chrony \
+# It should be noted that this installs awscli 1.14, which does not contain EKS.
+# We install the latest version of the awscli further down, after pip3 has been installed
+sudo apt-get install -y \
     conntrack \
+    chrony \
+    awscli \
+    wget \
     curl \
-    jq \
-    ec2-instance-connect \
-    nfs-utils \
     socat \
     unzip \
-    wget
-
-# Remove the ec2-net-utils package, if it's installed. This package interferes with the route setup on the instance.
-if yum list installed | grep ec2-net-utils; then sudo yum remove ec2-net-utils -y -q; fi
+    jq \
+    nfs-kernel-server \
+    ec2-instance-connect
 
 ################################################################################
 ### Time #######################################################################
 ################################################################################
 
 # Make sure Amazon Time Sync Service starts on boot.
-sudo chkconfig chronyd on
+sudo update-rc.d chrony defaults 80 20
 
-# Make sure that chronyd syncs RTC clock to the kernel.
-cat <<EOF | sudo tee -a /etc/chrony.conf
-# This directive enables kernel synchronisation (every 11 minutes) of the
-# real-time clock. Note that it can’t be used along with the 'rtcfile' directive.
-rtcsync
-EOF
+# However, chrony does not use Amazon Time Sync Service by default in Ubuntu
+# So, we will have to configure it to prefer it according to this:
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html#configure-amazon-time-service-ubuntu
+
+sudo sed -i '1s/^/server 169.254.169.123 prefer iburst minpoll 4 maxpoll 4\n/' /etc/chrony/chrony.conf
+
 
 # If current clocksource is xen, switch to tsc
 if grep --quiet xen /sys/devices/system/clocksource/clocksource0/current_clocksource &&
@@ -89,12 +88,44 @@ else
     echo "tsc as a clock source is not applicable, skipping."
 fi
 
+sudo apt-get install -y \
+    build-essential \
+    checkinstall
+
+sudo apt-get install -y \
+     libreadline-gplv2-dev \
+     libncursesw5-dev \
+     libssl-dev \
+     libsqlite3-dev \
+     tk-dev \
+     libgdbm-dev \
+     libc6-dev \
+     libbz2-dev
+
+sudo apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    software-properties-common
+
+sudo apt-get install -y python3-pip
+
+# Ubuntu's package repositories don't use a version of awscli that has eks
+sudo pip3 install awscli
+
+# Install aws-cfn-bootstrap directly, instead of via apt
+sudo apt-get install -y python2.7
+sudo apt-get install -y python-pip
+sudo pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+
+sudo ln -sf /root/aws-cfn-bootstrap-latest/init/ubuntu/cfn-hup /etc/init.d/cfn-hup
+
 ################################################################################
 ### iptables ###################################################################
 ################################################################################
 
 # Enable forwarding via iptables
-sudo bash -c "/sbin/iptables-save > /etc/sysconfig/iptables"
+sudo bash -c "iptables-save > /etc/network/iptables"
 
 sudo mv $TEMPLATE_DIR/iptables-restore.service /etc/systemd/system/iptables-restore.service
 
@@ -105,24 +136,26 @@ sudo systemctl enable iptables-restore
 ### Docker #####################################################################
 ################################################################################
 
-sudo yum install -y yum-utils device-mapper-persistent-data lvm2
-
 INSTALL_DOCKER="${INSTALL_DOCKER:-true}"
 if [[ "$INSTALL_DOCKER" == "true" ]]; then
-    sudo amazon-linux-extras enable docker
-    sudo yum install -y docker-${DOCKER_VERSION}*
-    sudo usermod -aG docker $USER
-
-    # Remove all options from sysconfig docker.
-    sudo sed -i '/OPTIONS/d' /etc/sysconfig/docker
-
-    sudo mkdir -p /etc/docker
-    sudo mv $TEMPLATE_DIR/docker-daemon.json /etc/docker/daemon.json
-    sudo chown root:root /etc/docker/daemon.json
-
-    # Enable docker daemon to start on boot.
-    sudo systemctl daemon-reload
-    sudo systemctl enable docker
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  sudo apt-key fingerprint 0EBFCD88
+  sudo add-apt-repository \
+     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+     $(lsb_release -cs) \
+     stable"
+  cat /etc/apt/sources.list
+  sudo apt-get update -y
+  sudo apt-get install -y docker-ce
+  sudo usermod -aG docker $USER
+  
+  sudo mkdir -p /etc/docker
+  sudo mv $TEMPLATE_DIR/docker-daemon.json /etc/docker/daemon.json
+  sudo chown root:root /etc/docker/daemon.json
+  
+  # Enable docker daemon to start on boot.
+  sudo systemctl daemon-reload
+  sudo systemctl enable docker
 fi
 
 ################################################################################
@@ -156,6 +189,11 @@ sudo sha512sum -c cni-plugins-${ARCH}-${CNI_PLUGIN_VERSION}.tgz.sha512
 sudo tar -xvf cni-plugins-${ARCH}-${CNI_PLUGIN_VERSION}.tgz -C /opt/cni/bin
 rm cni-plugins-${ARCH}-${CNI_PLUGIN_VERSION}.tgz cni-plugins-${ARCH}-${CNI_PLUGIN_VERSION}.tgz.sha512
 
+# Install kubelet, kubectl
+sudo snap install kubectl-eks --classic
+sudo snap install kubelet-eks --classic
+
+# Install aws-iam-authenticator
 echo "Downloading binaries from: s3://$BINARY_BUCKET_NAME"
 S3_DOMAIN="amazonaws.com"
 if [ "$BINARY_BUCKET_REGION" = "cn-north-1" ] || [ "$BINARY_BUCKET_REGION" = "cn-northwest-1" ]; then
@@ -165,7 +203,6 @@ S3_URL_BASE="https://$BINARY_BUCKET_NAME.s3.$BINARY_BUCKET_REGION.$S3_DOMAIN/$KU
 S3_PATH="s3://$BINARY_BUCKET_NAME/$KUBERNETES_VERSION/$KUBERNETES_BUILD_DATE/bin/linux/$ARCH"
 
 BINARIES=(
-    kubelet
     aws-iam-authenticator
 )
 for binary in ${BINARIES[*]} ; do
@@ -187,18 +224,10 @@ sudo rm *.sha256
 KUBERNETES_MINOR_VERSION=${KUBERNETES_VERSION%.*}
 
 sudo mkdir -p /etc/kubernetes/kubelet
-sudo mkdir -p /etc/systemd/system/kubelet.service.d
 sudo mv $TEMPLATE_DIR/kubelet-kubeconfig /var/lib/kubelet/kubeconfig
 sudo chown root:root /var/lib/kubelet/kubeconfig
-sudo mv $TEMPLATE_DIR/kubelet.service /etc/systemd/system/kubelet.service
-sudo chown root:root /etc/systemd/system/kubelet.service
 sudo mv $TEMPLATE_DIR/kubelet-config.json /etc/kubernetes/kubelet/kubelet-config.json
 sudo chown root:root /etc/kubernetes/kubelet/kubelet-config.json
-
-
-sudo systemctl daemon-reload
-# Disable the kubelet until the proper dropins have been configured
-sudo systemctl disable kubelet
 
 ################################################################################
 ### EKS ########################################################################
@@ -227,11 +256,12 @@ sudo chown -R root:root /etc/eks
 ### Cleanup ####################################################################
 ################################################################################
 
-# Clean up yum caches to reduce the image size
-sudo yum clean all
+# Clean up apt caches to reduce the image size
+sudo apt-get clean
+
 sudo rm -rf \
     $TEMPLATE_DIR  \
-    /var/cache/yum
+    /var/cache/apt
 
 # Clean up files to reduce confusion during debug
 sudo rm -rf \
@@ -239,7 +269,7 @@ sudo rm -rf \
     /etc/machine-id \
     /etc/resolv.conf \
     /etc/ssh/ssh_host* \
-    /home/ec2-user/.ssh/authorized_keys \
+    /home/ubuntu/.ssh/authorized_keys \
     /root/.ssh/authorized_keys \
     /var/lib/cloud/data \
     /var/lib/cloud/instance \
@@ -247,10 +277,10 @@ sudo rm -rf \
     /var/lib/cloud/sem \
     /var/lib/dhclient/* \
     /var/lib/dhcp/dhclient.* \
-    /var/lib/yum/history \
+    /var/lib/apt/history \
     /var/log/cloud-init-output.log \
     /var/log/cloud-init.log \
-    /var/log/secure \
+    /var/log/auth.log \
     /var/log/wtmp
 
 sudo touch /etc/machine-id

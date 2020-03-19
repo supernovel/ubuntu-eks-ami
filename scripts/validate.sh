@@ -21,7 +21,7 @@ validate_file_nonexists() {
 validate_file_nonexists '/etc/hostname'
 validate_file_nonexists '/etc/resolv.conf'
 validate_file_nonexists '/etc/ssh/ssh_host*'
-validate_file_nonexists '/home/ec2-user/.ssh/authorized_keys'
+validate_file_nonexists '/home/ubuntu/.ssh/authorized_keys'
 validate_file_nonexists '/root/.ssh/authorized_keys'
 validate_file_nonexists '/var/lib/cloud/data'
 validate_file_nonexists '/var/lib/cloud/instance'

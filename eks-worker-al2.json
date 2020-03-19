@@ -1,6 +1,6 @@
 {
   "variables": {
-    "aws_region": "us-west-2",
+    "aws_region": "ap-northeast-2",
     "ami_name": null,
     "creator": "{{env `USER`}}",
     "encrypted": "false",
@@ -19,20 +19,20 @@
     "cni_plugin_version": "v0.7.5",
 
     "source_ami_id": "",
-    "source_ami_owners": "137112412989",
-    "source_ami_filter_name": "amzn2-ami-minimal-hvm-*",
+    "source_ami_owners": "099720109477",
+    "source_ami_filter_name": "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*",
     "arch": null,
     "instance_type": null,
-    "ami_description": "EKS Kubernetes Worker AMI with AmazonLinux2 image",
+    "ami_description": "EKS Kubernetes Worker AMI with Ubuntu 16.04 image",
 
     "ssh_interface": "",
-    "ssh_username": "ec2-user",
+    "ssh_username": "ubuntu",
     "temporary_security_group_source_cidrs": "",
     "security_group_id": "",
     "associate_public_ip_address": "",
     "subnet_id": "",
     "remote_folder": "",
-    "launch_block_device_mappings_volume_size": "4",
+    "launch_block_device_mappings_volume_size": "8",
     "ami_users": "",
     "additional_yum_repos": ""
   },
@@ -58,18 +58,20 @@
       "instance_type": "{{user `instance_type`}}",
       "launch_block_device_mappings": [
         {
-          "device_name": "/dev/xvda",
-          "volume_type": "gp2",
+          "device_name": "/dev/sda1",
           "volume_size": "{{user `launch_block_device_mappings_volume_size`}}",
+          "volume_type": "gp2",
           "delete_on_termination": true
         }
       ],
-      "ami_block_device_mappings": [    
+      "ami_block_device_mappings": [
         {
-          "device_name": "/dev/xvda",
-          "volume_type": "gp2",
-          "volume_size": 20,
-          "delete_on_termination": true
+          "device_name": "/dev/sdb",
+          "virtual_name": "ephemeral0"
+        },
+        {
+          "device_name": "/dev/sdc",
+          "virtual_name": "ephemeral1"
         }
       ],
       "ssh_username": "{{user `ssh_username`}}",
@@ -110,12 +112,10 @@
       "destination": "/tmp/worker/"
     },
     {
-        "type": "shell",
-        "remote_folder": "{{ user `remote_folder`}}",
-        "script": "{{template_dir}}/scripts/install_additional_repos.sh",
-        "environment_vars": [
-          "ADDITIONAL_YUM_REPOS={{user `additional_yum_repos`}}"
-        ]
+      "type": "shell",
+      "inline": [
+        "/usr/bin/cloud-init status --wait"
+      ]
     },
     {
       "type": "shell",
@@ -132,14 +132,6 @@
         "AWS_ACCESS_KEY_ID={{user `aws_access_key_id`}}",
         "AWS_SECRET_ACCESS_KEY={{user `aws_secret_access_key`}}",
         "AWS_SESSION_TOKEN={{user `aws_session_token`}}"
-      ]
-    },
-    {
-      "type": "shell",
-      "remote_folder": "{{ user `remote_folder`}}",
-      "script": "{{template_dir}}/scripts/cleanup_additional_repos.sh",
-      "environment_vars": [
-        "ADDITIONAL_YUM_REPOS={{user `additional_yum_repos`}}"
       ]
     },
     {
