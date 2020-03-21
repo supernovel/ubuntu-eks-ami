@@ -1,7 +1,7 @@
 {
   "variables": {
     "aws_region": "ap-northeast-2",
-    "ami_name": null,
+    "ami_name": "ubuntu-eks-node-{{timestamp}}",
     "creator": "{{env `USER`}}",
     "encrypted": "false",
     "kms_key_id": "",
