@@ -64,7 +64,8 @@ sudo apt-get install -y \
     unzip \
     jq \
     nfs-kernel-server \
-    ec2-instance-connect
+    apt-transport-https \
+    ca-certificates
 
 ################################################################################
 ### Time #######################################################################
@@ -79,7 +80,6 @@ sudo update-rc.d chrony defaults 80 20
 
 sudo sed -i '1s/^/server 169.254.169.123 prefer iburst minpoll 4 maxpoll 4\n/' /etc/chrony/chrony.conf
 
-
 # If current clocksource is xen, switch to tsc
 if grep --quiet xen /sys/devices/system/clocksource/clocksource0/current_clocksource &&
   grep --quiet tsc /sys/devices/system/clocksource/clocksource0/available_clocksource; then
@@ -87,38 +87,6 @@ if grep --quiet xen /sys/devices/system/clocksource/clocksource0/current_clockso
 else
     echo "tsc as a clock source is not applicable, skipping."
 fi
-
-sudo apt-get install -y \
-    build-essential \
-    checkinstall
-
-sudo apt-get install -y \
-     libreadline-gplv2-dev \
-     libncursesw5-dev \
-     libssl-dev \
-     libsqlite3-dev \
-     tk-dev \
-     libgdbm-dev \
-     libc6-dev \
-     libbz2-dev
-
-sudo apt-get install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    software-properties-common
-
-sudo apt-get install -y python3-pip
-
-# Ubuntu's package repositories don't use a version of awscli that has eks
-sudo pip3 install awscli
-
-# Install aws-cfn-bootstrap directly, instead of via apt
-sudo apt-get install -y python2.7
-sudo apt-get install -y python-pip
-sudo pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-
-sudo ln -sf /root/aws-cfn-bootstrap-latest/init/ubuntu/cfn-hup /etc/init.d/cfn-hup
 
 ################################################################################
 ### iptables ###################################################################
@@ -256,31 +224,25 @@ sudo chown -R root:root /etc/eks
 ### Cleanup ####################################################################
 ################################################################################
 
-# Clean up apt caches to reduce the image size
-sudo apt-get clean
+# Clean up yum caches to reduce the image size
+sudo apt-get -y autoremove && sudo apt-get clean
 
 sudo rm -rf \
     $TEMPLATE_DIR  \
-    /var/cache/apt
+    /var/lib/apt/lists/*
 
 # Clean up files to reduce confusion during debug
 sudo rm -rf \
-    /etc/hostname \
-    /etc/machine-id \
-    /etc/resolv.conf \
     /etc/ssh/ssh_host* \
-    /home/ubuntu/.ssh/authorized_keys \
     /root/.ssh/authorized_keys \
+    /home/ubuntu/.ssh/authorized_keys \
+    /var/log/secure \
+    /var/log/wtmp \
+    /var/lib/dhclient/* \
+    /var/lib/dhcp/dhclient.* \
+    /var/lib/cloud/sem \
     /var/lib/cloud/data \
     /var/lib/cloud/instance \
     /var/lib/cloud/instances \
-    /var/lib/cloud/sem \
-    /var/lib/dhclient/* \
-    /var/lib/dhcp/dhclient.* \
-    /var/lib/apt/history \
-    /var/log/cloud-init-output.log \
     /var/log/cloud-init.log \
-    /var/log/auth.log \
-    /var/log/wtmp
-
-sudo touch /etc/machine-id
+    /var/log/cloud-init-output.log

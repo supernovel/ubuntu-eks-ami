@@ -18,8 +18,6 @@ validate_file_nonexists() {
   done
 }
 
-validate_file_nonexists '/etc/hostname'
-validate_file_nonexists '/etc/resolv.conf'
 validate_file_nonexists '/etc/ssh/ssh_host*'
 validate_file_nonexists '/home/ubuntu/.ssh/authorized_keys'
 validate_file_nonexists '/root/.ssh/authorized_keys'
@@ -29,7 +27,6 @@ validate_file_nonexists '/var/lib/cloud/instances'
 validate_file_nonexists '/var/lib/cloud/sem'
 validate_file_nonexists '/var/lib/dhclient/*'
 validate_file_nonexists '/var/lib/dhcp/dhclient.*'
-validate_file_nonexists '/var/lib/yum/history'
 validate_file_nonexists '/var/log/cloud-init-output.log'
 validate_file_nonexists '/var/log/cloud-init.log'
 validate_file_nonexists '/var/log/secure'
