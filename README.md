@@ -1,3 +1,10 @@
+# Ubuntu 16.04 AMI Build Packer
+- 우분투 16.04 버전으로 아마존 머신 이미지를 생성하는 [packer](https://packer.io)
+
+## Build 
+- packer를 설치한다.
+- `make k8s kubernetes_version=1.14.9 kubernetes_build_date=2020-01-22 instance_type=t3.micro`
+
 # Amazon EKS AMI Build Specification
 
 This repository contains resources and configuration scripts for building a
