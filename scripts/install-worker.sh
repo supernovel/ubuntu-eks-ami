@@ -65,7 +65,9 @@ sudo apt-get install -y \
     jq \
     nfs-kernel-server \
     apt-transport-https \
-    ca-certificates
+    ca-certificates \
+    software-properties-common \
+    gnupg2
 
 ################################################################################
 ### Time #######################################################################
@@ -106,15 +108,20 @@ sudo systemctl enable iptables-restore
 
 INSTALL_DOCKER="${INSTALL_DOCKER:-true}"
 if [[ "$INSTALL_DOCKER" == "true" ]]; then
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
   sudo apt-key fingerprint 0EBFCD88
+
   sudo add-apt-repository \
-     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-     $(lsb_release -cs) \
-     stable"
-  cat /etc/apt/sources.list
+    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) \
+    stable"
+
   sudo apt-get update -y
-  sudo apt-get install -y docker-ce
+  sudo apt-get install -y \
+    containerd.io \
+    docker-ce=$DOCKER_VERSION \
+    docker-ce-cli=$DOCKER_VERSION
+
   sudo usermod -aG docker $USER
   
   sudo mkdir -p /etc/docker
@@ -158,8 +165,8 @@ sudo tar -xvf cni-plugins-${ARCH}-${CNI_PLUGIN_VERSION}.tgz -C /opt/cni/bin
 rm cni-plugins-${ARCH}-${CNI_PLUGIN_VERSION}.tgz cni-plugins-${ARCH}-${CNI_PLUGIN_VERSION}.tgz.sha512
 
 # Install kubelet, kubectl
-sudo snap install kubectl-eks --classic
-sudo snap install kubelet-eks --classic
+sudo snap install kubectl-eks --channel=$KUBERNETES_VERSION/stable --classic
+sudo snap install kubelet-eks --channel=$KUBERNETES_VERSION/stable --classic
 
 # Install aws-iam-authenticator
 echo "Downloading binaries from: s3://$BINARY_BUCKET_NAME"

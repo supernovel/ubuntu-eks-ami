@@ -106,6 +106,9 @@ API_RETRY_ATTEMPTS="${API_RETRY_ATTEMPTS:-3}"
 DOCKER_CONFIG_JSON="${DOCKER_CONFIG_JSON:-}"
 PAUSE_CONTAINER_VERSION="${PAUSE_CONTAINER_VERSION:-3.1}"
 
+echo "Stop k8s kubelet daemon"
+snap stop kubelet-eks
+
 function get_pause_container_account_for_region () {
     local region="$1"
     case "${region}" in
