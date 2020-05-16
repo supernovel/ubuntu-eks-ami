@@ -95,6 +95,7 @@ fi
 ################################################################################
 
 # Enable forwarding via iptables
+sudo iptables --list
 sudo bash -c "iptables-save > /etc/network/iptables"
 
 sudo mv $TEMPLATE_DIR/iptables-restore.service /etc/systemd/system/iptables-restore.service
