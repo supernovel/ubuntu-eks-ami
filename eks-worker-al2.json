@@ -10,13 +10,11 @@
     "aws_secret_access_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
     "aws_session_token": "{{env `AWS_SESSION_TOKEN`}}",
 
-    "binary_bucket_name": "amazon-eks",
-    "binary_bucket_region": "us-west-2",
     "kubernetes_version": null,
-    "kubernetes_build_date": null,
-    "docker_version": "5:19.03.4~3-0~ubuntu-xenial",
-    "cni_version": "v0.6.0",
-    "cni_plugin_version": "v0.7.5",
+    "containerd_version": "1.2.13-1",
+    "docker_version": "5:19.03.8~3-0~ubuntu-xenial",
+    "cni_version": "v0.7.1",
+    "cni_plugin_version": "v0.8.5",
 
     "source_ami_id": "",
     "source_ami_owners": "099720109477",
@@ -91,7 +89,7 @@
           "created": "{{timestamp}}",
           "docker_version": "{{ user `docker_version`}}",
           "source_ami_id": "{{ user `source_ami_id`}}",
-          "kubernetes": "{{ user `kubernetes_version`}}/{{ user `kubernetes_build_date` }}/bin/linux/{{ user `arch` }}",
+          "kubernetes": "{{ user `kubernetes_version`}}/bin/linux/{{ user `arch` }}",
           "cni_version": "{{ user `cni_version`}}",
           "cni_plugin_version": "{{ user `cni_plugin_version`}}"
       },
@@ -123,9 +121,7 @@
       "script": "{{template_dir}}/scripts/install-worker.sh",
       "environment_vars": [
         "KUBERNETES_VERSION={{user `kubernetes_version`}}",
-        "KUBERNETES_BUILD_DATE={{user `kubernetes_build_date`}}",
-        "BINARY_BUCKET_NAME={{user `binary_bucket_name`}}",
-        "BINARY_BUCKET_REGION={{user `binary_bucket_region`}}",
+        "CONTAINERD_VERSION={{user `containerd_version`}}",
         "DOCKER_VERSION={{user `docker_version`}}",
         "CNI_VERSION={{user `cni_version`}}",
         "CNI_PLUGIN_VERSION={{user `cni_plugin_version`}}",

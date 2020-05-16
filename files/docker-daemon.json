@@ -1,4 +1,5 @@
 {
+  "exec-opts": ["native.cgroupdriver=systemd"],
   "bridge": "none",
   "log-driver": "json-file",
   "log-opts": {
@@ -6,5 +7,12 @@
     "max-file": "10"
   },
   "live-restore": true,
-  "max-concurrent-downloads": 10
+  "storage-driver": "overlay2",
+  "default-ulimits": {
+		"nofile": {
+			"Name": "nofile",
+			"Hard": 65536,
+			"Soft": 65536
+		}
+	}
 }

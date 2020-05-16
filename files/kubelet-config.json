@@ -23,10 +23,11 @@
   },
   "clusterDomain": "cluster.local",
   "hairpinMode": "hairpin-veth",
-  "cgroupDriver": "cgroupfs",
-  "cgroupRoot": "/",
+  "cgroupDriver": "systemd",
   "featureGates": {
-    "RotateKubeletServerCertificate": true
+    "RotateKubeletServerCertificate": true,
+    "ExpandCSIVolumes": true,
+    "ExpandInUsePersistentVolumes": true
   },
   "serializeImagePulls": false,
   "serverTLSBootstrap": true
