@@ -57,7 +57,7 @@ sudo apt-get update -y
 sudo apt-get install -y \
     conntrack \
     chrony \
-    awscli \
+    python3-pip \
     wget \
     curl \
     socat \
@@ -68,6 +68,9 @@ sudo apt-get install -y \
     ca-certificates \
     software-properties-common \
     gnupg2
+
+sudo pip3 install awscli
+aws --version
 
 ################################################################################
 ### Time #######################################################################
