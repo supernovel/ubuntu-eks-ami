@@ -6,7 +6,7 @@ K8S_VERSION_MINOR := $(word 1,${K8S_VERSION_PARTS}).$(word 2,${K8S_VERSION_PARTS
 
 aws_region ?= $(AWS_DEFAULT_REGION)
 binary_bucket_region ?= $(AWS_DEFAULT_REGION)
-ami_name ?= amazon-eks-node-$(K8S_VERSION_MINOR)-v$(shell date +'%Y%m%d')
+ami_name ?= ubuntu-eks-node-$(K8S_VERSION_MINOR)-v$(shell date +'%Y%m%d%H%M')
 arch ?= x86_64
 ifeq ($(arch), arm64)
 instance_type ?= a1.large
@@ -37,18 +37,18 @@ k8s: validate
 
 # Build dates and versions taken from https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
 
-.PHONY: 1.12
-1.12:
-	$(MAKE) k8s kubernetes_version=1.12.10 kubernetes_build_date=2020-01-22
-
 .PHONY: 1.13
 1.13:
-	$(MAKE) k8s kubernetes_version=1.13.12 kubernetes_build_date=2020-01-22
+	$(MAKE) k8s kubernetes_version=1.13.12
 
 .PHONY: 1.14
 1.14:
-	$(MAKE) k8s kubernetes_version=1.14.9 kubernetes_build_date=2020-01-22
+	$(MAKE) k8s kubernetes_version=1.14.9
  
 .PHONY: 1.15
 1.15:
-	$(MAKE) k8s kubernetes_version=1.15.10 kubernetes_build_date=2020-02-22
+	$(MAKE) k8s kubernetes_version=1.15.11
+
+.PHONY: 1.16
+1.16:
+	$(MAKE) k8s kubernetes_version=1.16.8
