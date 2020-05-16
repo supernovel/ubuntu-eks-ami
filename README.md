@@ -3,7 +3,7 @@
 
 ## Build 
 - packer를 설치한다.
-- `make k8s kubernetes_version=1.14.9 kubernetes_build_date=2020-01-22 instance_type=t3.micro`
+- `make 1.16 instance_type=t3.micro`
 
 # Amazon EKS AMI Build Specification
 
